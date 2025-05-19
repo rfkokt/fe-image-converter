@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  DOCKER_TLS_CERTDIR: "/certs"
 
 build:
   stage: build
@@ -12,26 +12,22 @@ build:
     - docker:20.10.16-dind
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $DOCKER_IMAGE .
-    - docker push $DOCKER_IMAGE
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   only:
     - main
 
 deploy:
   stage: deploy
-  image: alpine:latest
+  tags:
+    - home-runner # Pastikan tag ini sesuai dengan tag runner lokal Anda
   before_script:
-    - apk add --no-cache openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
+    - cp $ENV_FILE .env
   script:
-    - ssh $SERVER_USER@$SERVER_IP "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
-    - ssh $SERVER_USER@$SERVER_IP "docker pull $DOCKER_IMAGE"
-    - ssh $SERVER_USER@$SERVER_IP "docker stop nextjs-app || true"
-    - ssh $SERVER_USER@$SERVER_IP "docker rm nextjs-app || true"
-    - ssh $SERVER_USER@$SERVER_IP "docker run -d --name nextjs-app -p 3000:3000 --restart unless-stopped $DOCKER_IMAGE"
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker stop nextjs-app || true
+    - docker rm nextjs-app || true
+    - docker run -d --name nextjs-app -p 3000:3000 --restart unless-stopped $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   only:
     - main
