@@ -473,9 +473,6 @@ export function ImageConverter() {
 
     const response = await fetch("/api/upload", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer supersecrettoken123",
-      },
       body: formData,
     });
 

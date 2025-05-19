@@ -1,4 +1,6 @@
 // app/api/upload/route.ts (jika pakai App Router)
+"use server";
+
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -15,6 +17,7 @@ export async function POST(req: NextRequest) {
 
   return new NextResponse(blob, {
     headers: {
+      Authorization: "Bearer supersecrettoken123",
       "Content-Type": blob.type,
       "Content-Disposition": 'attachment; filename="converted.zip"',
     },
