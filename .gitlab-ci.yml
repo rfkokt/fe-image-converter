@@ -1,0 +1,27 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_NAME: registry.gitlab.com/rfkokt/image-converter
+  IMAGE_TAG: latest
+
+build:
+  stage: build
+  tags:
+    - home-runner # tag GitLab runner kamu
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+
+deploy:
+  stage: deploy
+  tags:
+    - home-runner
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker pull $IMAGE_NAME:$IMAGE_TAG
+    - docker stop nextjs-app || true
+    - docker rm nextjs-app || true
+    - docker run -d --name nextjs-app -p 3000:3000 $IMAGE_NAME:$IMAGE_TAG
